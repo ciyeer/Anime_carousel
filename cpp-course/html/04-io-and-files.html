@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>04 字符串、动态内存与文件I/O</title>
+  <style>
+:root {
+  --bg: #f7f4ef;
+  --fg: #1c1b19;
+  --muted: #5c574f;
+  --accent: #0b6e4f;
+  --code-bg: #ebe6dc;
+  --border: #d4cdc0;
+  --table-head: #e2dccd;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: "Source Han Sans SC", "Noto Sans SC", "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  color: var(--fg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e8f2ec 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0e8d8 0%, transparent 50%),
+    var(--bg);
+  line-height: 1.7;
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+header.doc-head {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--accent);
+}
+header.doc-head .series {
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+h1, h2, h3, h4 {
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif;
+  line-height: 1.35;
+  font-weight: 700;
+}
+h1 { font-size: 2rem; margin: 0.4rem 0 0.6rem; }
+h2 {
+  font-size: 1.45rem;
+  margin-top: 2.2rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--accent);
+}
+h3 { font-size: 1.15rem; margin-top: 1.6rem; color: #163a2c; }
+h4 { font-size: 1.02rem; margin-top: 1.2rem; }
+p, li { color: var(--fg); }
+a { color: var(--accent); }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+blockquote {
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(11, 110, 79, 0.06);
+  color: var(--muted);
+}
+code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+pre {
+  background: #1e2430;
+  color: #e8ecf1;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  line-height: 1.55;
+  box-shadow: 0 8px 24px rgba(30, 36, 48, 0.18);
+}
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.86rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.95rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--table-head); }
+tr:nth-child(even) td { background: rgba(255,255,255,0.45); }
+ul, ol { padding-left: 1.4rem; }
+li + li { margin-top: 0.25rem; }
+img { max-width: 100%; height: auto; }
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+nav.toc {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0 2rem;
+}
+nav.toc strong { display: block; margin-bottom: 0.4rem; color: var(--accent); }
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  h1 { font-size: 1.55rem; }
+  .wrap { padding: 1.5rem 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc-head">
+      <div class="series">C++ 课程讲义 · 优化版</div>
+    </header>
+    <article>
+<h1 id="04-io">04 字符串、动态内存与文件I/O</h1>
+<h2 id="_1">课程目标</h2>
+<ol>
+<li>理解 C++ 流的概念与 iostream 类库结构</li>
+<li>熟练使用 <code>cin</code>/<code>cout</code>/<code>cerr</code>/<code>clog</code> 及常用成员函数、格式化输出</li>
+<li>掌握 <code>std::string</code> 常用操作</li>
+<li>理解 <code>new</code>/<code>delete</code> 与 <code>malloc</code>/<code>free</code> 的区别，避免内存泄漏</li>
+<li>掌握文本文件与二进制文件的读写</li>
+</ol>
+<hr />
+<h2 id="_2">核心内容</h2>
+<h3 id="iostream">一、流的概念与 iostream 类库</h3>
+<p>程序的输入：从外部把数据送入程序；输出：把数据从程序送出。C++ I/O 主要包括：</p>
+<ol>
+<li><strong>标准 I/O</strong>：键盘 / 显示器（<code>cin</code>/<code>cout</code> 等）</li>
+<li><strong>文件 I/O</strong>：磁盘文件（<code>ifstream</code>/<code>ofstream</code>/<code>fstream</code>）</li>
+<li><strong>串 I/O</strong>：内存中的字符序列（字符串流）</li>
+</ol>
+<h4 id="_3">常用流类（简表）</h4>
+<table>
+<thead>
+<tr>
+<th>类名</th>
+<th>作用</th>
+<th>头文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ios</td>
+<td>抽象基类</td>
+<td>iostream</td>
+</tr>
+<tr>
+<td>istream</td>
+<td>输入流基类</td>
+<td>iostream</td>
+</tr>
+<tr>
+<td>ostream</td>
+<td>输出流基类</td>
+<td>iostream</td>
+</tr>
+<tr>
+<td>iostream</td>
+<td>输入输出流基类</td>
+<td>iostream</td>
+</tr>
+<tr>
+<td>ifstream</td>
+<td>文件输入流</td>
+<td>fstream</td>
+</tr>
+<tr>
+<td>ofstream</td>
+<td>文件输出流</td>
+<td>fstream</td>
+</tr>
+<tr>
+<td>fstream</td>
+<td>文件输入输出流</td>
+<td>fstream</td>
+</tr>
+</tbody>
+</table>
+<p>继承关系概要：<code>ios</code> → <code>istream</code> / <code>ostream</code> → <code>iostream</code>；文件流分别继承对应的流基类。</p>
+<p>常用头文件：<code>&lt;iostream&gt;</code>（标准流）、<code>&lt;fstream&gt;</code>（文件）、<code>&lt;iomanip&gt;</code>（格式化控制符）。</p>
+<p><code>&lt;&lt;</code> / <code>&gt;&gt;</code> 在 iostream 中被重载为插入 / 提取运算符，用于标准类型的输入输出。</p>
+<h3 id="_4">二、标准流</h3>
+<h4 id="21">2.1 四个标准流对象</h4>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>含义</th>
+<th>设备</th>
+<th>缓冲特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cin</td>
+<td>标准输入</td>
+<td>键盘</td>
+<td>有缓冲</td>
+</tr>
+<tr>
+<td>cout</td>
+<td>标准输出</td>
+<td>屏幕</td>
+<td>有缓冲</td>
+</tr>
+<tr>
+<td>cerr</td>
+<td>标准错误</td>
+<td>屏幕</td>
+<td><strong>无缓冲</strong>，不可重定向到文件（调试错误信息常用）</td>
+</tr>
+<tr>
+<td>clog</td>
+<td>标准日志</td>
+<td>屏幕</td>
+<td>有缓冲</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int a, b;
+    cout &lt;&lt; &quot;请输入两个整数：&quot;;
+    cin &gt;&gt; a &gt;&gt; b;
+    cout &lt;&lt; &quot;和为：&quot; &lt;&lt; (a + b) &lt;&lt; endl;  // endl：换行并刷新
+    cerr &lt;&lt; &quot;若出错，用 cerr 直接打到屏幕\n&quot;;
+    return 0;
+}
+</code></pre>
+<p><code>cout</code> 会按类型自动选择重载；插入 <code>endl</code> 会刷新缓冲区，仅 <code>"\n"</code> 通常不强制刷新。</p>
+<h4 id="22-cin">2.2 cin 常用成员</h4>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get()</code></td>
+<td>读一个字符（含空白）</td>
+</tr>
+<tr>
+<td><code>get(ch)</code></td>
+<td>读一个字符到变量</td>
+</tr>
+<tr>
+<td><code>get(buf, n)</code></td>
+<td>读最多 n-1 个字符到数组</td>
+</tr>
+<tr>
+<td><code>getline(buf,n)</code></td>
+<td>读一行（遇换行结束，丢弃换行）</td>
+</tr>
+<tr>
+<td><code>ignore(n)</code></td>
+<td>丢弃缓冲区中最多 n 个字符</td>
+</tr>
+<tr>
+<td><code>peek()</code></td>
+<td>查看下一个字符，不取走</td>
+</tr>
+<tr>
+<td><code>putback(ch)</code></td>
+<td>把字符放回缓冲区</td>
+</tr>
+<tr>
+<td><code>fail()</code>/<code>clear()</code></td>
+<td>检查 / 复位错误状态</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-cpp">void demo_get() {
+    char ch = cin.get();
+    cin.get(ch);
+    char a, b, c;
+    cin.get(a).get(b).get(c);   // 链式读取
+    char buf[1024] = {};
+    cin.getline(buf, 1024);
+    cout &lt;&lt; buf &lt;&lt; endl;
+}
+
+void demo_ignore_putback() {
+    cin.ignore(2);
+    char buf[1024] = {};
+    cin.get(buf, 1024);
+    cout &lt;&lt; buf &lt;&lt; endl;
+    char ch = cin.get();
+    cin.putback(ch);
+    cin.get(buf, 1024);
+    cout &lt;&lt; buf &lt;&lt; endl;
+}
+
+void demo_peek() {
+    cout &lt;&lt; &quot;请输入数字或字符串:\n&quot;;
+    char ch = cin.peek();
+    if (ch &gt;= '0' &amp;&amp; ch &lt;= '9') {
+        int number; cin &gt;&gt; number;
+        cout &lt;&lt; &quot;数字:&quot; &lt;&lt; number &lt;&lt; endl;
+    } else {
+        char buf[64] = {};
+        cin.getline(buf, 64);
+        cout &lt;&lt; &quot;字符串:&quot; &lt;&lt; buf &lt;&lt; endl;
+    }
+}
+</code></pre>
+<h4 id="23">2.3 格式化输出要点</h4>
+<p>输出侧常用：<code>put(ch)</code> 写字符、<code>write(buf, n)</code> 写指定字节、<code>flush()</code> 刷新。</p>
+<pre><code class="language-cpp">cout.put('a').put('b');
+cout.write(&quot;hello&quot;, 5);
+cout.flush();
+</code></pre>
+<p>格式化有两种途径：</p>
+<ol>
+<li><strong>控制符</strong>（需 <code>&lt;iomanip&gt;</code>）：<code>setw</code>、<code>setprecision</code>、<code>fixed</code>、<code>hex</code>/<code>oct</code>/<code>dec</code>、<code>left</code>/<code>right</code>、<code>setfill</code> 等  </li>
+<li><strong>成员函数</strong>：<code>width()</code>、<code>precision()</code>、<code>setf()</code> / <code>unsetf()</code> 等</li>
+</ol>
+<pre><code class="language-cpp">#include &lt;iomanip&gt;
+cout &lt;&lt; hex &lt;&lt; showbase &lt;&lt; 255 &lt;&lt; endl;        // 0xff
+cout &lt;&lt; dec &lt;&lt; fixed &lt;&lt; setprecision(2) &lt;&lt; 3.14159 &lt;&lt; endl;
+cout &lt;&lt; setw(8) &lt;&lt; setfill('0') &lt;&lt; 42 &lt;&lt; endl; // 00000042
+</code></pre>
+<h3 id="stdstring">三、std::string 常用操作</h3>
+<p>头文件：<code>#include &lt;string&gt;</code>。用分类示例代替完整 API 表。</p>
+<h4 id="_5">遍历</h4>
+<pre><code class="language-cpp">string s = &quot;Hello&quot;;
+for (char c : s) cout &lt;&lt; c &lt;&lt; ' ';
+</code></pre>
+<h4 id="_6">截取</h4>
+<pre><code class="language-cpp">string str = &quot;Hello, world!&quot;;
+string part1 = str.substr(0, 5);  // &quot;Hello&quot;
+string part2 = str.substr(7);     // &quot;world!&quot;
+</code></pre>
+<h4 id="_7">比较</h4>
+<pre><code class="language-cpp">if (str1 == str2) { /* 相等 */ }
+int cmp = str1.compare(str2);     // &lt;0 / 0 / &gt;0
+</code></pre>
+<h4 id="_8">查找与替换</h4>
+<pre><code class="language-cpp">string str = &quot;Hello, world!&quot;;
+size_t pos = str.find(&quot;world&quot;);
+if (pos != string::npos)
+    str.replace(pos, 5, &quot;C++&quot;);   // &quot;Hello, C++!&quot;
+</code></pre>
+<h4 id="_9">插入与删除</h4>
+<pre><code class="language-cpp">string str = &quot;Hello, world!&quot;;
+str.insert(7, &quot;beautiful &quot;);      // &quot;Hello, beautiful world!&quot;
+str.erase(7, 10);                 // 从下标 7 删 10 个字符
+str.clear();                      // 清空
+</code></pre>
+<h4 id="_10">其他常用</h4>
+<ul>
+<li>长度：<code>size()</code> / <code>length()</code>；是否空：<code>empty()</code></li>
+<li>拼接：<code>+</code>、<code>+=</code>、<code>append()</code>、<code>push_back()</code></li>
+<li>与 C 字符串互转：<code>c_str()</code>；单字符：<code>[]</code> / <code>at()</code></li>
+<li>大小写：配合 <code>&lt;cctype&gt;</code> 的 <code>toupper</code> / <code>tolower</code> 逐字符处理</li>
+</ul>
+<pre><code class="language-cpp">string str = &quot;Hello, world!&quot;;
+for (char&amp; c : str) c = static_cast&lt;char&gt;(toupper(c));
+for (char&amp; c : str) c = static_cast&lt;char&gt;(tolower(c));
+</code></pre>
+<h3 id="new-delete">四、动态内存：new / delete</h3>
+<h4 id="41">4.1 基本用法</h4>
+<pre><code class="language-cpp">int* p = new int;
+*p = 42;
+delete p;
+p = nullptr;              // 避免悬空指针
+
+int* arr = new int[10]{}; // 数组可值初始化
+delete[] arr;             // 数组必须用 delete[]
+</code></pre>
+<p>运行时按需向堆申请，比固定数组更灵活；忘记释放会导致泄漏。</p>
+<h4 id="42-newdelete-mallocfree">4.2 new/delete 与 malloc/free</h4>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>new / delete</th>
+<th>malloc / free</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>性质</td>
+<td>运算符</td>
+<td>C 库函数</td>
+</tr>
+<tr>
+<td>构造/析构</td>
+<td>会调用</td>
+<td>不会</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>类型安全，自动算大小</td>
+<td>需手动 <code>sizeof</code></td>
+</tr>
+<tr>
+<td>失败</td>
+<td>抛 <code>std::bad_alloc</code>（默）</td>
+<td>返回 <code>nullptr</code></td>
+</tr>
+<tr>
+<td>对齐等</td>
+<td>按对象类型处理</td>
+<td>需自行保证</td>
+</tr>
+<tr>
+<td>推荐场景</td>
+<td>C++ 对象优先用 new/delete</td>
+<td>与 C 库交互时可能用到</td>
+</tr>
+</tbody>
+</table>
+<p>不要混用：<code>new</code> 配 <code>free</code>、<code>malloc</code> 配 <code>delete</code> 都是未定义行为。</p>
+<h4 id="43">4.3 预防内存泄漏</h4>
+<ul>
+<li><code>new</code> 与 <code>delete</code>（<code>new[]</code> 与 <code>delete[]</code>）成对出现</li>
+<li>所有返回路径都要释放（含异常路径）</li>
+<li>遵循 RAII：资源获取即初始化，对象析构时自动释放</li>
+<li><strong>智能指针</strong>（<code>unique_ptr</code> / <code>shared_ptr</code>）可自动释放——详情见第 06 课</li>
+</ul>
+<h3 id="_11">五、文件流</h3>
+<h4 id="51">5.1 打开与关闭</h4>
+<pre><code class="language-cpp">#include &lt;fstream&gt;
+
+ofstream outfile;
+outfile.open(&quot;f1.dat&quot;, ios::out);
+// 或：ofstream outfile(&quot;f1.dat&quot;, ios::out);
+
+if (!outfile) {
+    cerr &lt;&lt; &quot;打开失败\n&quot;;
+    return;
+}
+outfile.close();  // 解除关联，之后可再 open 其他文件
+</code></pre>
+<h4 id="52">5.2 常用打开模式</h4>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ios::in</code></td>
+<td>读</td>
+</tr>
+<tr>
+<td><code>ios::out</code></td>
+<td>写（默认截断）</td>
+</tr>
+<tr>
+<td><code>ios::app</code></td>
+<td>追加</td>
+</tr>
+<tr>
+<td><code>ios::ate</code></td>
+<td>打开后定位到末尾</td>
+</tr>
+<tr>
+<td><code>ios::trunc</code></td>
+<td>截断已有内容</td>
+</tr>
+<tr>
+<td><code>ios::binary</code></td>
+<td>二进制模式</td>
+</tr>
+</tbody>
+</table>
+<p>可用 <code>|</code> 组合，例如：<code>ios::in | ios::binary</code>、<code>ios::out | ios::app</code>。互斥模式不要一起用。打开失败时流对象为假，可用 <code>if (!fsm)</code> 判断。</p>
+<p>每个打开的文件有读写位置指针；读到末尾时 <code>eof()</code> 为真。</p>
+<pre><code class="language-cpp">ofstream app(&quot;log.txt&quot;, ios::app);   // 追加
+app &lt;&lt; &quot;新的一行\n&quot;;
+app.close();
+</code></pre>
+<h4 id="53-ascii">5.3 ASCII 文本读写</h4>
+<p>文本文件按字符存储。可用 <code>&lt;&lt;</code> / <code>&gt;&gt;</code>，或 <code>get</code> / <code>getline</code> / <code>put</code>。<code>ifstream</code>/<code>ofstream</code> 继承标准流插入提取运算，用法类似 <code>cin</code>/<code>cout</code>。优先 <code>while (getline(ism, line))</code>，避免错误的 <code>while (!eof())</code> 多读一行。</p>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+using namespace std;
+
+int main() {
+    ifstream ism(&quot;source.txt&quot;, ios::in);
+    ofstream osm(&quot;target.txt&quot;, ios::out);
+    if (!ism) {
+        cerr &lt;&lt; &quot;打开失败!\n&quot;;
+        return 1;
+    }
+
+    string line;
+    while (getline(ism, line)) {  // 推荐：按行读到 string
+        cout &lt;&lt; line &lt;&lt; endl;
+        osm &lt;&lt; line &lt;&lt; endl;
+    }
+    ism.close();
+    osm.close();
+    return 0;
+}
+</code></pre>
+<h4 id="54-read-write">5.4 二进制 read / write</h4>
+<p>二进制按内存映像读写字节，打开时加 <code>ios::binary</code>。</p>
+<pre><code class="language-cpp">istream&amp; read(char* buffer, streamsize len);
+ostream&amp; write(const char* buffer, streamsize len);
+</code></pre>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;cstring&gt;
+using namespace std;
+
+class Person {
+public:
+    Person() = default;
+    Person(const char* name, int age) {
+        strncpy(mName, name, sizeof(mName) - 1);
+        mAge = age;
+    }
+    char mName[64]{};
+    int mAge{};
+};
+
+int main() {
+    const char* fileName = &quot;person.bin&quot;;
+
+    {
+        ofstream osm(fileName, ios::out | ios::binary);
+        Person p1(&quot;Tim&quot;, 33), p2(&quot;Edward&quot;, 34);
+        osm.write(reinterpret_cast&lt;const char*&gt;(&amp;p1), sizeof(Person));
+        osm.write(reinterpret_cast&lt;const char*&gt;(&amp;p2), sizeof(Person));
+    }
+
+    {
+        ifstream ism(fileName, ios::in | ios::binary);
+        if (!ism) {
+            cerr &lt;&lt; &quot;打开失败!\n&quot;;
+            return 1;
+        }
+        Person p3, p4;
+        ism.read(reinterpret_cast&lt;char*&gt;(&amp;p3), sizeof(Person));
+        ism.read(reinterpret_cast&lt;char*&gt;(&amp;p4), sizeof(Person));
+        cout &lt;&lt; &quot;Name:&quot; &lt;&lt; p3.mName &lt;&lt; &quot; Age:&quot; &lt;&lt; p3.mAge &lt;&lt; endl;
+        cout &lt;&lt; &quot;Name:&quot; &lt;&lt; p4.mName &lt;&lt; &quot; Age:&quot; &lt;&lt; p4.mAge &lt;&lt; endl;
+    }
+    return 0;
+}
+</code></pre>
+<p>注意：含虚函数、指针成员的类不宜直接按字节读写；跨平台还需考虑对齐与字节序。</p>
+<hr />
+<h2 id="_12">课堂小结</h2>
+<ol>
+<li>流是数据的传输抽象；标准流与文件流分属不同头文件与类</li>
+<li><code>cin</code> 的 <code>get</code>/<code>getline</code>/<code>ignore</code>/<code>peek</code>/<code>putback</code> 处理缓冲细节；格式化用 <code>&lt;iomanip&gt;</code></li>
+<li><code>string</code> 用遍历、截取、比较、替换、插入、删除等分类掌握即可</li>
+<li>C++ 优先 <code>new</code>/<code>delete</code>；配对释放，后续用智能指针更安全</li>
+<li>文本用 <code>&lt;&lt;</code>/<code>&gt;&gt;</code>/<code>getline</code>；二进制用 <code>read</code>/<code>write</code> 并指定 <code>ios::binary</code></li>
+</ol>
+<hr />
+<h2 id="_13">随堂练习</h2>
+<ol>
+<li>
+<p><strong>文本读写</strong><br />
+   创建含若干行字符串的文本文件；编写程序读出并打印到控制台；再追加若干行写回文件。</p>
+</li>
+<li>
+<p><strong>二进制读写</strong><br />
+   定义结构体或类（仅含普通数据成员），写入二进制文件后再读回并打印验证。</p>
+</li>
+<li>
+<p><strong>追加与截断（选做）</strong><br />
+   用 <code>ios::app</code> 向文件末尾追加；另写程序以截断方式打开并只保留部分内容（或重写前若干行）。</p>
+</li>
+</ol>
+    </article>
+    <footer>
+      <p>由原 day_01～day_09 讲义去重整理 · 建议配合 Markdown 源文件学习</p>
+    </footer>
+  </div>
+</body>
+</html>

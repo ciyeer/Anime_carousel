@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 类型转换、智能指针与STL</title>
+  <style>
+:root {
+  --bg: #f7f4ef;
+  --fg: #1c1b19;
+  --muted: #5c574f;
+  --accent: #0b6e4f;
+  --code-bg: #ebe6dc;
+  --border: #d4cdc0;
+  --table-head: #e2dccd;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: "Source Han Sans SC", "Noto Sans SC", "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  color: var(--fg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e8f2ec 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0e8d8 0%, transparent 50%),
+    var(--bg);
+  line-height: 1.7;
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+header.doc-head {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--accent);
+}
+header.doc-head .series {
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+h1, h2, h3, h4 {
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif;
+  line-height: 1.35;
+  font-weight: 700;
+}
+h1 { font-size: 2rem; margin: 0.4rem 0 0.6rem; }
+h2 {
+  font-size: 1.45rem;
+  margin-top: 2.2rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--accent);
+}
+h3 { font-size: 1.15rem; margin-top: 1.6rem; color: #163a2c; }
+h4 { font-size: 1.02rem; margin-top: 1.2rem; }
+p, li { color: var(--fg); }
+a { color: var(--accent); }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+blockquote {
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(11, 110, 79, 0.06);
+  color: var(--muted);
+}
+code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+pre {
+  background: #1e2430;
+  color: #e8ecf1;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  line-height: 1.55;
+  box-shadow: 0 8px 24px rgba(30, 36, 48, 0.18);
+}
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.86rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.95rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--table-head); }
+tr:nth-child(even) td { background: rgba(255,255,255,0.45); }
+ul, ol { padding-left: 1.4rem; }
+li + li { margin-top: 0.25rem; }
+img { max-width: 100%; height: auto; }
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+nav.toc {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0 2rem;
+}
+nav.toc strong { display: block; margin-bottom: 0.4rem; color: var(--accent); }
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  h1 { font-size: 1.55rem; }
+  .wrap { padding: 1.5rem 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc-head">
+      <div class="series">C++ 课程讲义 · 优化版</div>
+    </header>
+    <article>
+<h1 id="06-stl">06 类型转换、智能指针与STL</h1>
+<h2 id="_1">课程目标</h2>
+<ul>
+<li>掌握四种 C++ 强制转换：<code>static_cast</code> / <code>dynamic_cast</code> / <code>const_cast</code> / <code>reinterpret_cast</code></li>
+<li>理解智能指针的必要性与 <code>unique_ptr</code> / <code>shared_ptr</code> / <code>weak_ptr</code></li>
+<li>掌握 STL 三大组件关系，会用常用容器与算法</li>
+<li>能根据场景选择合适容器，并完成综合小练习</li>
+</ul>
+<hr />
+<h2 id="_2">核心内容</h2>
+<h3 id="_3">一、类型转换</h3>
+<p>少用强制转换。C++ 四种命名转换比 C 风格更清晰、更可控。</p>
+<h4 id="11-static_cast">1.1 static_cast</h4>
+<ul>
+<li>继承体系中：上行转换（派生→基类）安全；下行转换无运行时检查，不安全</li>
+<li>用于基本类型转换（如 <code>int</code>↔<code>char</code>），安全性由程序员保证</li>
+<li>无关类型指针之间一般不能转换</li>
+</ul>
+<pre><code class="language-cpp">class Animal {};
+class Dog : public Animal {};
+
+char a = 'a';
+double b = static_cast&lt;double&gt;(a);
+
+Dog* d = nullptr;
+Animal* an = static_cast&lt;Animal*&gt;(d);   // 上行，安全
+Dog* d2 = static_cast&lt;Dog*&gt;(an);        // 下行，不安全
+</code></pre>
+<h4 id="12-dynamic_cast">1.2 dynamic_cast</h4>
+<ul>
+<li>用于多态继承体系的上下行转换（基类需有虚函数）</li>
+<li>上行与 <code>static_cast</code> 类似；下行带<strong>运行时类型检查</strong>，更安全</li>
+<li>不支持基本类型；指针失败返回 <code>nullptr</code>，引用失败抛 <code>bad_cast</code></li>
+</ul>
+<pre><code class="language-cpp">class Animal {
+public:
+    virtual void Show() = 0;
+};
+class Dog : public Animal {
+public:
+    void Show() override { cout &lt;&lt; &quot;dog\n&quot;; }
+};
+
+Dog* d = new Dog;
+Animal* a = dynamic_cast&lt;Animal*&gt;(d);   // OK
+// Dog* d2 = dynamic_cast&lt;Dog*&gt;(a);     // a 若实际不是 Dog，得到 nullptr
+</code></pre>
+<h4 id="13-const_cast">1.3 const_cast</h4>
+<p>用于去除或添加指针/引用的 <code>const</code> 属性。不能对非指针、非引用的普通变量直接去 const。</p>
+<pre><code class="language-cpp">const int* p = nullptr;
+int* np = const_cast&lt;int*&gt;(p);
+
+int x = 10;
+int&amp; r = x;
+const int&amp; cr = const_cast&lt;const int&amp;&gt;(r);
+</code></pre>
+<h4 id="14-reinterpret_cast">1.4 reinterpret_cast</h4>
+<p>最不安全。可在无关类型间做底层位模式重解释（如指针↔整数）。仅在底层系统编程等极少数场景使用。</p>
+<pre><code class="language-cpp">int n = 42;
+uintptr_t addr = reinterpret_cast&lt;uintptr_t&gt;(&amp;n);
+int* p = reinterpret_cast&lt;int*&gt;(addr);
+</code></pre>
+<hr />
+<h3 id="_4">二、智能指针</h3>
+<h4 id="21">2.1 为何需要</h4>
+<p>裸 <code>new</code>/<code>delete</code> 易泄漏、易悬空。智能指针是栈上对象，离开作用域自动析构并释放资源。</p>
+<p><code>auto_ptr</code>（C++98）已弃用：赋值会“偷走”所有权，留下隐患。现代 C++ 使用后三者。</p>
+<h4 id="22-unique_ptr">2.2 unique_ptr — 独占所有权</h4>
+<p>同一时间只有一个 <code>unique_ptr</code> 拥有对象；不可拷贝，可移动。</p>
+<pre><code class="language-cpp">unique_ptr&lt;string&gt; p1(new string(&quot;hello&quot;));
+// unique_ptr&lt;string&gt; p2 = p1;           // 编译错误
+unique_ptr&lt;string&gt; p3 = move(p1);        // 转移所有权
+unique_ptr&lt;string&gt; p4(new string(&quot;tmp&quot;)); // 临时右值可赋值
+</code></pre>
+<h4 id="23-shared_ptr">2.3 shared_ptr — 共享所有权（引用计数）</h4>
+<p>多个 <code>shared_ptr</code> 可指向同一对象；引用计数为 0 时释放。常用：<code>use_count</code>、<code>unique</code>、<code>get</code>、<code>reset</code>、<code>swap</code>。推荐 <code>make_shared</code>。</p>
+<pre><code class="language-cpp">shared_ptr&lt;string&gt; ps1(new string(&quot;s1&quot;));
+shared_ptr&lt;string&gt; ps2 = ps1;
+cout &lt;&lt; ps1.use_count();  // 2
+ps1.reset();              // 计数减一
+</code></pre>
+<p>原理（精简）：智能指针把裸指针封装成栈对象；<code>shared_ptr</code> 在堆上维护引用计数，复制 +1、销毁 -1，到 0 则 <code>delete</code>。</p>
+<h4 id="24-weak_ptr">2.4 weak_ptr — 打破循环引用</h4>
+<p>两个对象互相持有对方的 <code>shared_ptr</code> 会造成循环引用，计数永不为 0，泄漏。把其中一方改为 <code>weak_ptr</code>（不增加强引用计数）即可。</p>
+<pre><code class="language-cpp">class B;
+class A {
+public:
+    weak_ptr&lt;B&gt; pb;   // 勿用 shared_ptr 形成环
+    ~A() { cout &lt;&lt; &quot;A delete\n&quot;; }
+};
+class B {
+public:
+    shared_ptr&lt;A&gt; pa;
+    ~B() { cout &lt;&lt; &quot;B delete\n&quot;; }
+};
+</code></pre>
+<p>使用前：<code>expired()</code> 检查；<code>lock()</code> 获得临时 <code>shared_ptr</code> 再访问对象。<code>weak_ptr</code> 未重载 <code>*</code> / <code>-&gt;</code>。</p>
+<hr />
+<h3 id="stl">三、STL 概览</h3>
+<p>STL（Standard Template Library）三大组件：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>容器 container</td>
+<td>管理数据集合（序列式 / 关联式）</td>
+</tr>
+<tr>
+<td>算法 algorithm</td>
+<td>对区间做查找、排序、遍历等</td>
+</tr>
+<tr>
+<td>迭代器 iterator</td>
+<td>连接容器与算法的“泛化指针”</td>
+</tr>
+</tbody>
+</table>
+<p>关系：算法通过迭代器访问容器，二者解耦，提高复用。</p>
+<h4 id="hello-vector">Hello vector</h4>
+<pre><code class="language-cpp">#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v{1, 5, 3, 7};
+    for (auto it = v.begin(); it != v.end(); ++it)
+        cout &lt;&lt; *it &lt;&lt; &quot; &quot;;
+    cout &lt;&lt; &quot;\ncount 5: &quot; &lt;&lt; count(v.begin(), v.end(), 5) &lt;&lt; endl;
+}
+</code></pre>
+<p>容器还可存对象、指针，甚至嵌套容器（如 <code>vector&lt;vector&lt;int&gt;&gt;</code>）。</p>
+<hr />
+<h3 id="_5">四、常用容器</h3>
+<h4 id="41-string-char">4.1 string（与 char*）</h4>
+<table>
+<thead>
+<tr>
+<th>对比</th>
+<th>char*</th>
+<th>string</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本质</td>
+<td>指针</td>
+<td>类，封装并管理字符数组</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>需手动管理</td>
+<td>自动管理，减少越界/泄漏</td>
+</tr>
+<tr>
+<td>能力</td>
+<td>依赖 C 库</td>
+<td>find / replace / substr 等</td>
+</tr>
+</tbody>
+</table>
+<p>转换：<code>str.c_str()</code> → <code>const char*</code>；<code>string s(cstr)</code> ← <code>char*</code>。</p>
+<p>常用 API（按类精简）：</p>
+<ul>
+<li>构造：<code>string()</code> / <code>string(const char*)</code> / <code>string(n, c)</code> / 拷贝构造</li>
+<li>赋值：<code>=</code>、<code>assign</code></li>
+<li>访问：<code>[]</code>（越界未定义）、<code>at</code>（越界抛异常）</li>
+<li>拼接：<code>+=</code>、<code>append</code></li>
+<li>查找替换：<code>find</code> / <code>rfind</code> / <code>replace</code></li>
+<li>子串删除：<code>substr</code> / <code>erase</code> / <code>insert</code></li>
+<li>比较：<code>compare</code>（<code>&lt;</code> 返回 -1，<code>=</code> 返回 0，<code>&gt;</code> 返回 1）</li>
+</ul>
+<h4 id="42-vector">4.2 vector</h4>
+<p>特性：</p>
+<ol>
+<li>动态数组，连续内存，随机访问 O(1)</li>
+<li>尾插/尾删高效；中间插入需移动元素</li>
+<li>空间不足时扩容：申请更大空间 → 拷贝 → 释放旧空间</li>
+<li>可用 <code>reserve</code> 预留容量，减少扩容次数</li>
+<li><code>resize</code> 改变大小并构造元素；<code>reserve</code> 只留空间不构造</li>
+</ol>
+<p>常用 API：<code>push_back</code> / <code>pop_back</code> / <code>insert</code> / <code>erase</code> / <code>clear</code> / <code>size</code> / <code>empty</code> / <code>capacity</code> / <code>reserve</code> / <code>resize</code> / <code>at</code> / <code>[]</code> / <code>front</code> / <code>back</code></p>
+<h4 id="43-deque">4.3 deque</h4>
+<p>特性：</p>
+<ol>
+<li>双端队列，分段连续空间，支持随机访问</li>
+<li>头尾插入删除均高效</li>
+<li>无“整块扩容拷贝”问题，一般不提供 <code>reserve</code></li>
+<li>随机访问略慢于 vector</li>
+<li>适合两端进出的场景（如排队）</li>
+</ol>
+<p>常用 API：<code>push_back</code> / <code>push_front</code> / <code>pop_back</code> / <code>pop_front</code> / <code>at</code> / <code>[]</code> / <code>size</code> / <code>empty</code></p>
+<h4 id="44-list">4.4 list</h4>
+<p>特性：</p>
+<ol>
+<li>双向链表，结点非连续</li>
+<li>任意位置插入删除 O(1)（已知迭代器）</li>
+<li>不支持随机访问（无 <code>[]</code>）</li>
+<li>额外指针开销，遍历较慢</li>
+<li>自带 <code>sort</code> / <code>reverse</code> / <code>remove</code></li>
+</ol>
+<p>常用 API：<code>push_back</code> / <code>push_front</code> / <code>insert</code> / <code>erase</code> / <code>remove</code> / <code>front</code> / <code>back</code> / <code>size</code> / <code>empty</code> / <code>sort</code> / <code>reverse</code></p>
+<h4 id="45-stack-queue">4.5 stack / queue</h4>
+<p><strong>stack（FILO）</strong>：仅栈顶操作，无迭代器、不可遍历。</p>
+<ul>
+<li>API：<code>push</code> / <code>pop</code> / <code>top</code> / <code>empty</code> / <code>size</code></li>
+</ul>
+<p><strong>queue（FIFO）</strong>：队尾入、队头出，无迭代器、不可遍历。</p>
+<ul>
+<li>API：<code>push</code> / <code>pop</code> / <code>front</code> / <code>back</code> / <code>empty</code> / <code>size</code></li>
+</ul>
+<h4 id="46-set-multiset">4.6 set / multiset</h4>
+<p>特性：</p>
+<ol>
+<li>基于红黑树，元素自动有序</li>
+<li><code>set</code> 键唯一；<code>multiset</code> 允许重复</li>
+<li>查找/插入/删除平均 O(log n)</li>
+<li>迭代器不可改键值（会破坏有序结构）</li>
+<li>关联式容器，按值（键）组织</li>
+</ol>
+<p>常用 API：<code>insert</code> / <code>erase</code> / <code>find</code> / <code>count</code> / <code>lower_bound</code> / <code>upper_bound</code> / <code>equal_range</code> / <code>size</code> / <code>empty</code></p>
+<h4 id="47-map-multimap">4.7 map / multimap</h4>
+<p>特性：</p>
+<ol>
+<li>存键值对 <code>pair&lt;const Key, T&gt;</code>，按键自动排序</li>
+<li><code>map</code> 键唯一；<code>multimap</code> 允许相同键</li>
+<li>可改实值，不可改键</li>
+<li><code>operator[]</code>：键不存在会<strong>插入</strong>默认值（取值时需注意）</li>
+<li>插入可用 <code>insert(make_pair(...))</code> 或 <code>insert({k,v})</code></li>
+</ol>
+<p>对组：</p>
+<pre><code class="language-cpp">pair&lt;string, int&gt; p1(&quot;name&quot;, 20);
+auto p2 = make_pair(&quot;name&quot;, 30);
+cout &lt;&lt; p2.first &lt;&lt; &quot; &quot; &lt;&lt; p2.second;
+</code></pre>
+<p>常用 API：<code>insert</code> / <code>erase</code> / <code>find</code> / <code>count</code> / <code>[]</code> / <code>at</code> / <code>size</code> / <code>empty</code></p>
+<h4 id="48">4.8 容器选择对照（精简）</h4>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>vector</th>
+<th>deque</th>
+<th>list</th>
+<th>set/multiset</th>
+<th>map/multimap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>结构</td>
+<td>单端数组</td>
+<td>双端分段数组</td>
+<td>双向链表</td>
+<td>红黑树</td>
+<td>红黑树</td>
+</tr>
+<tr>
+<td>随机访问</td>
+<td>是</td>
+<td>是</td>
+<td>否</td>
+<td>否</td>
+<td>按 key：是</td>
+</tr>
+<tr>
+<td>查找</td>
+<td>慢</td>
+<td>慢</td>
+<td>很慢</td>
+<td>快</td>
+<td>按 key：快</td>
+</tr>
+<tr>
+<td>插入删除</td>
+<td>尾端优</td>
+<td>头尾优</td>
+<td>任意位置优</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>选用提示：</p>
+<ul>
+<li>历史记录、随机读多 → <strong>vector</strong></li>
+<li>两端进出（排队）→ <strong>deque</strong></li>
+<li>频繁任意位置插删 → <strong>list</strong></li>
+<li>有序唯一集合 / 排行榜 → <strong>set</strong></li>
+<li>按 ID 快速查用户 → <strong>map</strong></li>
+</ul>
+<h4 id="49">4.9 值语义与深拷贝</h4>
+<p>STL 容器存的是元素的<strong>拷贝</strong>（值语义），不是引用。若类内持有堆内存，必须正确实现拷贝构造与 <code>operator=</code>（深拷贝），否则浅拷贝会导致双重释放。</p>
+<pre><code class="language-cpp">class MyClass {
+    char* data;
+public:
+    MyClass(const char* s) {
+        data = new char[strlen(s) + 1];
+        strcpy(data, s);
+    }
+    MyClass(const MyClass&amp; o) {
+        data = new char[strlen(o.data) + 1];
+        strcpy(data, o.data);
+    }
+    MyClass&amp; operator=(const MyClass&amp; o) {
+        if (this == &amp;o) return *this;
+        delete[] data;
+        data = new char[strlen(o.data) + 1];
+        strcpy(data, o.data);
+        return *this;
+    }
+    ~MyClass() { delete[] data; }
+};
+// vector&lt;MyClass&gt; 才能安全 push_back
+</code></pre>
+<hr />
+<h3 id="_6">五、常用算法</h3>
+<p>头文件：<code>&lt;algorithm&gt;</code>（主体）、<code>&lt;numeric&gt;</code>（累计等）、<code>&lt;functional&gt;</code>（函数对象）。</p>
+<p>算法作用于迭代器区间 <code>[first, last)</code>。质变算法会改元素（如 <code>sort</code>/<code>replace</code>）；非质变不改（如 <code>find</code>/<code>count</code>）。</p>
+<h4 id="51">5.1 遍历</h4>
+<ul>
+<li><code>for_each(beg, end, func)</code></li>
+<li><code>transform(beg, end, dest, func)</code> — 目标容器需先 <code>resize</code></li>
+</ul>
+<pre><code class="language-cpp">vector&lt;int&gt; v{1, 2, 3, 4};
+for_each(v.begin(), v.end(), [](int x) { cout &lt;&lt; x &lt;&lt; &quot; &quot;; });
+
+vector&lt;int&gt; dest(v.size());
+transform(v.begin(), v.end(), dest.begin(), [](int x) { return x + 10; });
+</code></pre>
+<h4 id="52">5.2 查找</h4>
+<table>
+<thead>
+<tr>
+<th>算法</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>find</code></td>
+<td>找等于 value 的元素，失败返回 <code>end()</code></td>
+</tr>
+<tr>
+<td><code>find_if</code></td>
+<td>按条件查找</td>
+</tr>
+<tr>
+<td><code>adjacent_find</code></td>
+<td>找相邻重复</td>
+</tr>
+<tr>
+<td><code>binary_search</code></td>
+<td>二分查找（要求有序）</td>
+</tr>
+<tr>
+<td><code>count</code> / <code>count_if</code></td>
+<td>计数</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-cpp">auto it = find(v.begin(), v.end(), 3);
+if (it != v.end()) cout &lt;&lt; *it;
+</code></pre>
+<p>自定义类型用 <code>find</code> 需重载 <code>operator==</code>。</p>
+<h4 id="53">5.3 排序</h4>
+<ul>
+<li><code>sort(beg, end)</code> / <code>sort(beg, end, cmp)</code></li>
+<li><code>random_shuffle</code>（C++14 及以前）/ <code>shuffle</code>（C++17）</li>
+<li><code>reverse</code></li>
+<li><code>merge</code>（合并两个<strong>有序</strong>区间到目标）</li>
+</ul>
+<h4 id="54">5.4 拷贝与替换</h4>
+<ul>
+<li><code>copy</code> / <code>replace</code> / <code>replace_if</code> / <code>swap</code>（交换两容器）</li>
+</ul>
+<h4 id="55">5.5 数值</h4>
+<ul>
+<li><code>accumulate(beg, end, init)</code> — 求和</li>
+<li><code>fill(beg, end, val)</code> — 填充</li>
+</ul>
+<h4 id="56">5.6 集合（要求有序）</h4>
+<ul>
+<li><code>set_intersection</code> 交集</li>
+<li><code>set_union</code> 并集</li>
+<li><code>set_difference</code> 差集</li>
+</ul>
+<p>目标区间需预留足够空间；返回写入结束位置的迭代器。</p>
+<hr />
+<h3 id="_7">六、综合小练习</h3>
+<h4 id="1string">练习 1：邮箱格式校验（string）</h4>
+<p>要求：含 <code>@</code> 与 <code>.</code>，且 <code>.</code> 在 <code>@</code> 之后；<code>@</code> 前用户名仅小写字母。</p>
+<pre><code class="language-cpp">bool CheckValid(const string&amp; email) {
+    auto at = email.find('@');
+    auto dot = email.find('.', at == string::npos ? 0 : at);
+    return at != string::npos &amp;&amp; dot != string::npos &amp;&amp; at &lt; dot;
+}
+
+bool CheckUsername(const string&amp; email) {
+    auto at = email.find('@');
+    if (at == string::npos) return false;
+    string user = email.substr(0, at);
+    for (char c : user)
+        if (c &lt; 'a' || c &gt; 'z') return false;
+    return !user.empty();
+}
+</code></pre>
+<h4 id="2map-string">练习 2：单词统计（map + string）</h4>
+<p>输入一段文本，统计每个单词出现次数并输出。</p>
+<pre><code class="language-cpp">#include &lt;map&gt;
+#include &lt;sstream&gt;
+#include &lt;string&gt;
+#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    string line, word;
+    getline(cin, line);
+    istringstream iss(line);
+    map&lt;string, int&gt; freq;
+    while (iss &gt;&gt; word) ++freq[word];
+    for (const auto&amp; p : freq)
+        cout &lt;&lt; p.first &lt;&lt; &quot;: &quot; &lt;&lt; p.second &lt;&lt; endl;
+}
+</code></pre>
+<hr />
+<h2 id="_8">课堂小结</h2>
+<ul>
+<li>四种转换各有职责：<code>static</code> 编译期、<code>dynamic</code> 运行期检查、<code>const</code> 去/加常量、<code>reinterpret</code> 底层重解释</li>
+<li>智能指针：<code>unique_ptr</code> 独占，<code>shared_ptr</code> 引用计数共享，<code>weak_ptr</code> 解决循环引用；<code>auto_ptr</code> 已弃用</li>
+<li>STL：容器存数据、迭代器搭桥、算法做事</li>
+<li>按访问模式与插删位置选容器；注意值语义与深拷贝</li>
+<li>算法按遍历/查找/排序/拷贝/数值/集合分类记忆，配合迭代器区间使用</li>
+</ul>
+<hr />
+<h2 id="_9">随堂练习</h2>
+<ol>
+<li>用 <code>shared_ptr</code> + <code>weak_ptr</code> 演示并解决 A/B 互相引用导致的泄漏。</li>
+<li>完成「邮箱校验」或「单词统计」中至少一题，并额外用 <code>vector</code> + <code>sort</code> + <code>unique</code> 对一组整数去重排序输出。</li>
+</ol>
+    </article>
+    <footer>
+      <p>由原 day_01～day_09 讲义去重整理 · 建议配合 Markdown 源文件学习</p>
+    </footer>
+  </div>
+</body>
+</html>

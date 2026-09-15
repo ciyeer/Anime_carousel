@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>01 C++入门与对C的扩展</title>
+  <style>
+:root {
+  --bg: #f7f4ef;
+  --fg: #1c1b19;
+  --muted: #5c574f;
+  --accent: #0b6e4f;
+  --code-bg: #ebe6dc;
+  --border: #d4cdc0;
+  --table-head: #e2dccd;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: "Source Han Sans SC", "Noto Sans SC", "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  color: var(--fg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e8f2ec 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0e8d8 0%, transparent 50%),
+    var(--bg);
+  line-height: 1.7;
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+header.doc-head {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--accent);
+}
+header.doc-head .series {
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+h1, h2, h3, h4 {
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif;
+  line-height: 1.35;
+  font-weight: 700;
+}
+h1 { font-size: 2rem; margin: 0.4rem 0 0.6rem; }
+h2 {
+  font-size: 1.45rem;
+  margin-top: 2.2rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--accent);
+}
+h3 { font-size: 1.15rem; margin-top: 1.6rem; color: #163a2c; }
+h4 { font-size: 1.02rem; margin-top: 1.2rem; }
+p, li { color: var(--fg); }
+a { color: var(--accent); }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+blockquote {
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(11, 110, 79, 0.06);
+  color: var(--muted);
+}
+code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+pre {
+  background: #1e2430;
+  color: #e8ecf1;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  line-height: 1.55;
+  box-shadow: 0 8px 24px rgba(30, 36, 48, 0.18);
+}
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.86rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.95rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--table-head); }
+tr:nth-child(even) td { background: rgba(255,255,255,0.45); }
+ul, ol { padding-left: 1.4rem; }
+li + li { margin-top: 0.25rem; }
+img { max-width: 100%; height: auto; }
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+nav.toc {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0 2rem;
+}
+nav.toc strong { display: block; margin-bottom: 0.4rem; color: var(--accent); }
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  h1 { font-size: 1.55rem; }
+  .wrap { padding: 1.5rem 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc-head">
+      <div class="series">C++ 课程讲义 · 优化版</div>
+    </header>
+    <article>
+<h1 id="01-cc">01 C++入门与对C的扩展</h1>
+<h2 id="_1">课程目标</h2>
+<ol>
+<li>编写并理解简单的 C++ 程序（Hello World、头文件、命名空间、cout）</li>
+<li>区分面向过程与面向对象的基本思路</li>
+<li>掌握作用域运算符与命名空间的常用写法</li>
+<li>理解 C++ 相对 C 的扩展：更严格类型检查、struct 增强、bool、三目左值、const、引用</li>
+<li>掌握内联函数、默认/占位参数、函数重载、<code>extern "C"</code>、Lambda 表达式</li>
+</ol>
+<hr />
+<h2 id="c">一、初识 C++</h2>
+<h3 id="11-hello-world">1.1 Hello World</h3>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    cout &lt;&lt; &quot;hello world&quot; &lt;&lt; endl;
+    return 0;
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>#include &lt;iostream&gt;</code></td>
+<td>引入标准输入输出流</td>
+</tr>
+<tr>
+<td><code>using namespace std;</code></td>
+<td>引入标准命名空间中的名字</td>
+</tr>
+<tr>
+<td><code>cout</code> / <code>endl</code></td>
+<td>标准输出；<code>endl</code> 换行并刷新缓冲区</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12">1.2 头文件风格</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>约定</th>
+<th>示例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C++ 旧式</td>
+<td><code>.h</code></td>
+<td><code>iostream.h</code></td>
+<td>可用，但不推荐</td>
+</tr>
+<tr>
+<td>C 旧式</td>
+<td><code>.h</code></td>
+<td><code>math.h</code></td>
+<td>C/C++ 都可用</td>
+</tr>
+<tr>
+<td>C++ 新式</td>
+<td>无扩展名</td>
+<td><code>iostream</code></td>
+<td>推荐，配合 <code>namespace std</code></td>
+</tr>
+<tr>
+<td>转换后的 C</td>
+<td><code>c</code> 前缀</td>
+<td><code>cmath</code></td>
+<td>C 库的 C++ 版本</td>
+</tr>
+</tbody>
+</table>
+<p>C++ 标准头文件通常无扩展名；源自 C 的头文件去掉 <code>.h</code> 并加前缀 <code>c</code>（如 <code>math.h</code> → <code>cmath</code>）。</p>
+<h3 id="13-vs">1.3 面向过程 vs 面向对象</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>面向过程</th>
+<th>面向对象</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基本单元</td>
+<td>函数/过程</td>
+<td>对象（数据 + 操作）</td>
+</tr>
+<tr>
+<td>组织方式</td>
+<td>功能分解，自顶向下</td>
+<td>类与对象交互</td>
+</tr>
+<tr>
+<td>复用方式</td>
+<td>模块化、函数复用</td>
+<td>封装、继承、多态</td>
+</tr>
+<tr>
+<td>核心等式</td>
+<td>程序 = 数据结构 + 算法</td>
+<td>对象 = 数据 + 算法；程序 = 对象协作</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>封装、继承、多态、抽象等 OOP 特性将在后续「类与对象」中展开，此处只建立对比印象。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、作用域运算符 <code>::</code></h2>
+<p>局部变量会遮蔽同名全局变量；用 <code>::</code> 可访问被遮蔽的全局名字。</p>
+<pre><code class="language-cpp">int a = 10;  // 全局
+
+void test() {
+    int a = 20;  // 局部
+    cout &lt;&lt; &quot;局部 a: &quot; &lt;&lt; a &lt;&lt; endl;   // 20
+    cout &lt;&lt; &quot;全局 a: &quot; &lt;&lt; ::a &lt;&lt; endl; // 10
+}
+</code></pre>
+<p><code>::</code> 也用于访问命名空间成员、类的静态成员、类外定义的成员函数等。</p>
+<hr />
+<h2 id="_3">三、命名空间</h2>
+<p>命名空间用于控制名字的可见范围，避免大规模工程与多库协作时的名字冲突。</p>
+<h3 id="31">3.1 定义与访问</h3>
+<pre><code class="language-cpp">namespace A { int a = 10; }
+namespace B { int a = 20; }
+
+void test() {
+    cout &lt;&lt; A::a &lt;&lt; endl;  // 10
+    cout &lt;&lt; B::a &lt;&lt; endl;  // 20
+}
+</code></pre>
+<p>要点：</p>
+<ul>
+<li><strong>只能在全局范围定义</strong>（不能写在函数内部）</li>
+<li><strong>可嵌套</strong></li>
+<li><strong>开放</strong>：可多次向同一命名空间追加成员</li>
+<li>声明与实现可分离：<code>void MySpace::func();</code></li>
+</ul>
+<pre><code class="language-cpp">namespace Outer {
+    int x = 10;
+    namespace Inner {
+        int y = 20;
+    }
+}
+// 访问：Outer::x、Outer::Inner::y
+</code></pre>
+<pre><code class="language-cpp">namespace A { int a = 10; }
+namespace A { void func() { cout &lt;&lt; &quot;hello&quot; &lt;&lt; endl; } }  // 追加成员
+</code></pre>
+<h3 id="32">3.2 匿名命名空间与别名</h3>
+<p>匿名命名空间中的名字仅本翻译单元可见（类似内部链接的 <code>static</code>）：</p>
+<pre><code class="language-cpp">namespace {
+    int x = 10;
+    void foo() { /* ... */ }
+}
+// 本文件内可直接使用 x、foo()
+</code></pre>
+<p>命名空间别名：</p>
+<pre><code class="language-cpp">namespace veryLongName { int a = 10; }
+namespace shortName = veryLongName;
+cout &lt;&lt; shortName::a &lt;&lt; endl;
+</code></pre>
+<h3 id="33-using-vs-using">3.3 using 声明 vs using 指令</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>using 声明</th>
+<th>using 指令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>写法</td>
+<td><code>using A::paramA;</code></td>
+<td><code>using namespace A;</code></td>
+</tr>
+<tr>
+<td>效果</td>
+<td>引入<strong>一个</strong>名字</td>
+<td>引入命名空间内<strong>全部</strong>名字</td>
+</tr>
+<tr>
+<td>重载</td>
+<td>一次引入同名重载函数的整组</td>
+<td>—</td>
+</tr>
+<tr>
+<td>风险</td>
+<td>同作用域内注意同名冲突</td>
+<td>多个命名空间同时引入易二义</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-cpp">namespace A {
+    int paramA = 20;
+    void funcA() {}
+}
+
+void demo() {
+    using A::paramA;   // 声明：只引入 paramA
+    cout &lt;&lt; paramA &lt;&lt; endl;
+    // cout &lt;&lt; paramB; // 未引入，不可直接用
+
+    using namespace A; // 指令：A 中名字均可直接用
+}
+</code></pre>
+<p>优先用作用域限定 <code>A::name</code> 或精确的 using 声明；少用文件级 <code>using namespace std;</code>（教学示例可例外）。</p>
+<hr />
+<h2 id="_4">四、类型与语言增强</h2>
+<h3 id="41">4.1 更严格的类型检查</h3>
+<p>C 中可编译通过、C++ 中往往报错的例子：</p>
+<pre><code class="language-cpp">typedef enum COLOR { GREEN, RED, YELLOW } color;
+color mycolor = GREEN;
+// mycolor = 10;           // C++：枚举与 int 不能随意赋值
+// char *p = malloc(10);   // C++：void* 不能隐式转成 char*
+</code></pre>
+<h3 id="42-struct">4.2 struct 增强</h3>
+<ul>
+<li>定义变量时可省略 <code>struct</code> 关键字</li>
+<li>结构体中<strong>既可有成员变量，也可有成员函数</strong></li>
+</ul>
+<pre><code class="language-cpp">struct Student {
+    string mName;
+    int mAge;
+    void setName(string name) { mName = name; }
+    void show() { cout &lt;&lt; mName &lt;&lt; &quot; &quot; &lt;&lt; mAge &lt;&lt; endl; }
+};
+
+void test() {
+    Student s;  // 无需写 struct Student
+    s.setName(&quot;John&quot;);
+    s.mAge = 20;
+    s.show();
+}
+</code></pre>
+<blockquote>
+<p><code>struct</code> 与 <code>class</code> 语法几乎相同，默认访问权限不同：<code>struct</code> 默认 <code>public</code>，<code>class</code> 默认 <code>private</code>（详见下一讲）。</p>
+</blockquote>
+<h3 id="43-bool">4.3 bool</h3>
+<p><code>bool</code> 只能取 <code>true</code> / <code>false</code>；转成整型时分别为 1 / 0。C99 可通过 <code>&lt;stdbool.h&gt;</code> 使用类似类型；C++ 则是内建关键字。</p>
+<h3 id="44">4.4 三目运算符的左值增强</h3>
+<ul>
+<li><strong>C</strong>：<code>a &gt; b ? a : b</code> 返回的是<strong>值</strong>（右值），不能对其赋值</li>
+<li><strong>C++</strong>：两边都是左值时，表达式本身是<strong>左值</strong>（引用），可以赋值</li>
+</ul>
+<pre><code class="language-cpp">int a = 10, b = 20;
+(a &gt; b ? a : b) = 100;  // C++ 合法：给较大者赋 100，此处改的是 b
+</code></pre>
+<p>左值（lvalue）：可取地址、可出现在赋值左侧；右值（rvalue）：一般是临时值，可读但通常不可赋值。</p>
+<hr />
+<h2 id="const">五、const</h2>
+<h3 id="51-c-c-const">5.1 C 与 C++ 中 const 的要点差异</h3>
+<table>
+<thead>
+<tr>
+<th>点</th>
+<th>C</th>
+<th>C++</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>含义倾向</td>
+<td>只读变量，通常分配存储</td>
+<td>更接近编译期常量，可进符号表</td>
+</tr>
+<tr>
+<td>作数组长度</td>
+<td>局部/全局 const 通常不能作数组大小</td>
+<td>编译期常量可作数组大小</td>
+</tr>
+<tr>
+<td>默认链接</td>
+<td>全局 const 默认<strong>外部链接</strong></td>
+<td>全局 const 默认<strong>内部链接</strong></td>
+</tr>
+<tr>
+<td>取地址 / <code>extern</code></td>
+<td>始终有存储</td>
+<td>取地址或 <code>extern</code> 声明时会分配存储</td>
+</tr>
+</tbody>
+</table>
+<p>全局 const 若落在只读段，通过指针强行写入会在运行期出错。局部 const：</p>
+<ul>
+<li><strong>字面量初始化的基本类型</strong>（如 <code>const int a = 10</code>）：C++ 常放入符号表；对其取地址时再分配内存，指针改的是这块内存，通过名字读到的仍可能是符号表中的值</li>
+<li><strong>用变量初始化</strong>（<code>const int a = b</code>）或<strong>类对象</strong>：会分配内存</li>
+</ul>
+<p>需要跨文件共享时显式写出：</p>
+<pre><code class="language-cpp">extern const int a = 10;
+</code></pre>
+<h3 id="52-const-define">5.2 尽量用 const 替代 <code>#define</code></h3>
+<pre><code class="language-cpp">// #define MAX 1024   // 无类型、无作用域、预处理直接替换，出错信息不友好
+const int max = 1024; // 有类型、有作用域、参与编译检查
+</code></pre>
+<p>对比：</p>
+<ol>
+<li><strong>类型</strong>：<code>const</code> 可做类型检查与重载决议；宏只是文本替换</li>
+<li><strong>作用域</strong>：<code>const</code> 遵循块作用域；宏从定义处到文件尾（或 <code>#undef</code>），且<strong>不能</strong>真正属于某个 <code>namespace</code></li>
+</ol>
+<hr />
+<h2 id="_5">六、引用</h2>
+<h3 id="61">6.1 声明与规则</h3>
+<pre><code class="language-cpp">int a = 10;
+int&amp; b = a;   // b 是 a 的别名
+b = 100;      // 即修改 a
+</code></pre>
+<p>规则：</p>
+<ol>
+<li>引用必须初始化，初始化后<strong>不能改绑</strong>到另一个对象（<code>ref = b</code> 是赋值，不是改绑定）</li>
+<li>对引用的操作就是对原对象的操作；<code>&amp;a</code> 与 <code>&amp;b</code> 相同</li>
+<li>不能定义「引用的数组」；可以有指针的引用：<code>int*&amp; ptr = p;</code></li>
+<li><strong>本质</strong>：编译器内部常实现为指针常量 <code>Type* const</code></li>
+</ol>
+<pre><code class="language-cpp">// int&amp; ref = val;  ≈  int* const ref = &amp;val;
+</code></pre>
+<h3 id="62">6.2 常引用</h3>
+<pre><code class="language-cpp">int a = 10;
+const int&amp; b = a;
+// b = 20;  // 错误：不能通过常引用修改
+a = 20;     // 可以通过原变量修改
+</code></pre>
+<p>常引用常用于函数形参：避免拷贝大开销，又防止意外修改实参。</p>
+<h3 id="63">6.3 作参数与返回值</h3>
+<pre><code class="language-cpp">void swap(int&amp; x, int&amp; y) {
+    int t = x; x = y; y = t;
+}
+
+int result = 0;
+int&amp; square(int r) {
+    result = r * r;
+    return result;  // 可返回全局/静态或调用方仍存活的对象
+}
+
+// 禁止：返回局部变量的引用（生命周期已结束）
+</code></pre>
+<p>传引用与传指针效果相近，语法更清晰。不要返回局部自动变量的引用。</p>
+<h3 id="64-vs">6.4 引用 vs 指针（精简）</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>引用</th>
+<th>指针</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>初始化</td>
+<td>必须</td>
+<td>可稍后</td>
+</tr>
+<tr>
+<td>可空</td>
+<td>否</td>
+<td>可以（<code>nullptr</code>）</td>
+</tr>
+<tr>
+<td>改指向</td>
+<td>不可改绑</td>
+<td>可改指向</td>
+</tr>
+<tr>
+<td>语法</td>
+<td>直接当对象用</td>
+<td>需 <code>*</code> / <code>-&gt;</code></td>
+</tr>
+<tr>
+<td>本质</td>
+<td>别名（常实现为指针常量）</td>
+<td>存放地址的变量</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_6">七、内联函数、默认参数、占位参数</h2>
+<h3 id="71-inline">7.1 内联函数 <code>inline</code></h3>
+<p>编译器在合适时把函数调用展开为函数体，减少调用开销。适合短小、频繁调用的函数；过大或含复杂控制流时收益有限，还可能增大代码体积。</p>
+<p><code>inline</code> 应与<strong>函数定义</strong>放在一起才有意义（仅写在声明上通常无效）：</p>
+<pre><code class="language-cpp">inline void swap(int&amp; a, int&amp; b) {
+    int t = a; a = b; b = t;
+}
+</code></pre>
+<p>类内定义的成员函数默认具有 inline 属性。</p>
+<h3 id="72">7.2 默认参数</h3>
+<pre><code class="language-cpp">void TestFunc(int a = 10, int b = 20) {
+    cout &lt;&lt; a + b &lt;&lt; endl;
+}
+
+TestFunc();        // 10 + 20
+TestFunc(100);     // 100 + 20
+TestFunc(100, 200);
+</code></pre>
+<p>规则：</p>
+<ol>
+<li>默认参数必须从<strong>右向左</strong>连续提供（某个参数有默认值，则其后参数都必须有）</li>
+<li>声明与定义分开时，<strong>只在一处</strong>设置默认参数（通常放在声明处）</li>
+</ol>
+<h3 id="73">7.3 占位参数</h3>
+<p>只有类型、没有名字；函数体内一般用不到，但调用时仍需传实参（除非也给了默认值）：</p>
+<pre><code class="language-cpp">void f(int a, int b, int) { cout &lt;&lt; a + b &lt;&lt; endl; }
+f(10, 20, 30);  // 第三个实参必需
+
+void g(int a, int b, int = 0) { /* ... */ }
+g(10, 20);      // 占位参数用默认值
+</code></pre>
+<p>后置 <code>++</code> 重载会用到占位的 <code>int</code> 形参（见「类与对象」中的运算符重载）。</p>
+<hr />
+<h2 id="_7">八、函数重载</h2>
+<p>同一作用域内，同名函数可通过<strong>参数个数、类型或顺序</strong>区分，实现重载。</p>
+<pre><code class="language-cpp">void MyFunc() {}
+void MyFunc(int a) {}
+void MyFunc(string b) {}
+void MyFunc(int a, string b) {}
+void MyFunc(string b, int a) {}  // 参数顺序不同也可重载
+</code></pre>
+<h3 id="81">8.1 条件与禁止项</h3>
+<p><strong>可以作为重载条件：</strong> 同一作用域；参数个数 / 类型 / 顺序不同。</p>
+<p><strong>不能</strong>仅靠返回值类型区分：</p>
+<pre><code class="language-cpp">void f(int);
+// int f(int);  // 错误：无法仅按返回值重载
+</code></pre>
+<p>原因：调用方可忽略返回值，<code>f(10)</code> 时编译器无法确定该调哪一个。</p>
+<h3 id="82">8.2 与默认参数的二义性</h3>
+<pre><code class="language-cpp">void MyFunc(string b) {}
+void MyFunc(string b, int a = 10) {}
+
+// MyFunc(&quot;hello&quot;);  // 二义：两个函数都能匹配
+</code></pre>
+<h3 id="83-name-mangling">8.3 实现原理（name mangling）简述</h3>
+<p>C++ 编译器通过<strong>名字修饰</strong>把参数类型编入符号名，以支持重载。Linux/g++ 下示意：</p>
+<pre><code class="language-text">void func()           →  _Z4funcv
+void func(int)        →  _Z4funci
+void func(int, char)  →  _Z4funcic
+</code></pre>
+<p>不同编译器修饰规则可能不同；链接时按修饰后的名字匹配。</p>
+<hr />
+<h2 id="extern-c">九、<code>extern "C"</code></h2>
+<p>C 与 C++ 名字修饰规则不同：C 大致保留原名，C++ 会修饰。因此在 C++ 中直接声明并链接 C 函数会找不到符号。</p>
+<p>用 <code>extern "C"</code> 让指定声明按 C 规则编译链接：</p>
+<pre><code class="language-c">/* MyModule.h — 可被 C/C++ 共用 */
+#ifndef MYMODULE_H
+#define MYMODULE_H
+#ifdef __cplusplus
+extern &quot;C&quot; {
+#endif
+void func1();
+int func2(int a, int b);
+#ifdef __cplusplus
+}
+#endif
+#endif
+</code></pre>
+<pre><code class="language-cpp">// 或在 .cpp 中单独声明
+extern &quot;C&quot; void func1();
+extern &quot;C&quot; int func2(int a, int b);
+</code></pre>
+<hr />
+<h2 id="lambda">十、Lambda 表达式</h2>
+<p>C++11 起支持的匿名函数对象，适合作为算法回调、一次性小函数。</p>
+<h3 id="101">10.1 语法</h3>
+<pre><code class="language-cpp">[capture](parameters) mutable -&gt; return_type { statements; }
+</code></pre>
+<p>常用简化形式：</p>
+<pre><code class="language-cpp">auto sum = [](int a, int b) { return a + b; };
+cout &lt;&lt; sum(3, 4) &lt;&lt; endl;  // 7
+</code></pre>
+<h3 id="102">10.2 捕获</h3>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[]</code></td>
+<td>不捕获</td>
+</tr>
+<tr>
+<td><code>[=]</code></td>
+<td>按值捕获所有用到的自动变量</td>
+</tr>
+<tr>
+<td><code>[&amp;]</code></td>
+<td>按引用捕获</td>
+</tr>
+<tr>
+<td><code>[=, &amp;x]</code> / <code>[&amp;, x]</code></td>
+<td>默认一种，个别例外</td>
+</tr>
+<tr>
+<td><code>[x, &amp;y]</code></td>
+<td>指定：x 按值，y 按引用</td>
+</tr>
+</tbody>
+</table>
+<p>默认按值捕获时，函数体内一般不能修改捕获副本；需要修改时加 <code>mutable</code>。</p>
+<pre><code class="language-cpp">int test = 100;
+auto fl = [test](int x, int y) { return test + x + y; };
+auto f2 = [=](int x, int y) { return test + x + y; };
+</code></pre>
+<h3 id="103-sort">10.3 与 <code>sort</code> 结合</h3>
+<pre><code class="language-cpp">#include &lt;algorithm&gt;
+#include &lt;cmath&gt;
+#include &lt;iostream&gt;
+using namespace std;
+
+void abssort(float* x, unsigned n) {
+    sort(x, x + n, [](float a, float b) {
+        return abs(a) &lt; abs(b);
+    });
+}
+
+int main() {
+    float a[5] = { -2.1f, 3.5f, -4.0f, 5.2f, 3.3f };
+    abssort(a, 5);
+    for (auto&amp; v : a) cout &lt;&lt; v &lt;&lt; endl;
+}
+</code></pre>
+<hr />
+<h2 id="_8">课堂小结</h2>
+<ul>
+<li>C++ 程序以 <code>&lt;iostream&gt;</code>、<code>std</code>、<code>cout</code> 起步；头文件多为无扩展名风格</li>
+<li>面向过程侧重函数分解，面向对象侧重对象协作；本讲只建立对比</li>
+<li><code>::</code> 与 <code>namespace</code> 解决名字冲突；分清 using 声明与 using 指令</li>
+<li>C++ 类型更严；<code>struct</code> 可含成员函数；<code>bool</code>、三目左值、const、引用是常用扩展</li>
+<li>引用是别名（常实现为指针常量）；形参优先考虑常引用</li>
+<li>内联、默认/占位参数、重载（不能靠返回值）、<code>extern "C"</code>、Lambda 是函数层面的重要能力</li>
+</ul>
+<hr />
+<h2 id="_9">随堂练习</h2>
+<ol>
+<li><strong>引用交换</strong>：编写 <code>void swap(int&amp; a, int&amp; b)</code>，在 <code>main</code> 中验证两个变量的值被交换，并打印二者地址说明引用未产生新对象。</li>
+<li><strong>重载与默认参数</strong>：定义一组 <code>print</code> 重载（无参 / <code>int</code> / <code>string</code>），再尝试与带默认参数的同名函数组合，观察并解释二义性错误。</li>
+<li><strong>Lambda 排序</strong>：给定 <code>vector&lt;int&gt;</code>，用 Lambda 按绝对值从小到大排序并输出；再改为按降序排序。</li>
+</ol>
+    </article>
+    <footer>
+      <p>由原 day_01～day_09 讲义去重整理 · 建议配合 Markdown 源文件学习</p>
+    </footer>
+  </div>
+</body>
+</html>

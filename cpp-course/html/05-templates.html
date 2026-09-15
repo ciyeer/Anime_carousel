@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>05 函数模板与类模板</title>
+  <style>
+:root {
+  --bg: #f7f4ef;
+  --fg: #1c1b19;
+  --muted: #5c574f;
+  --accent: #0b6e4f;
+  --code-bg: #ebe6dc;
+  --border: #d4cdc0;
+  --table-head: #e2dccd;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: "Source Han Sans SC", "Noto Sans SC", "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  color: var(--fg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e8f2ec 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0e8d8 0%, transparent 50%),
+    var(--bg);
+  line-height: 1.7;
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+header.doc-head {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--accent);
+}
+header.doc-head .series {
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+h1, h2, h3, h4 {
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif;
+  line-height: 1.35;
+  font-weight: 700;
+}
+h1 { font-size: 2rem; margin: 0.4rem 0 0.6rem; }
+h2 {
+  font-size: 1.45rem;
+  margin-top: 2.2rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--accent);
+}
+h3 { font-size: 1.15rem; margin-top: 1.6rem; color: #163a2c; }
+h4 { font-size: 1.02rem; margin-top: 1.2rem; }
+p, li { color: var(--fg); }
+a { color: var(--accent); }
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+blockquote {
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(11, 110, 79, 0.06);
+  color: var(--muted);
+}
+code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+pre {
+  background: #1e2430;
+  color: #e8ecf1;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  line-height: 1.55;
+  box-shadow: 0 8px 24px rgba(30, 36, 48, 0.18);
+}
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.86rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.95rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--table-head); }
+tr:nth-child(even) td { background: rgba(255,255,255,0.45); }
+ul, ol { padding-left: 1.4rem; }
+li + li { margin-top: 0.25rem; }
+img { max-width: 100%; height: auto; }
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+nav.toc {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0 2rem;
+}
+nav.toc strong { display: block; margin-bottom: 0.4rem; color: var(--accent); }
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  h1 { font-size: 1.55rem; }
+  .wrap { padding: 1.5rem 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc-head">
+      <div class="series">C++ 课程讲义 · 优化版</div>
+    </header>
+    <article>
+<h1 id="05">05 函数模板与类模板</h1>
+<h2 id="_1">课程目标</h2>
+<ul>
+<li>理解模板与泛型编程的目的</li>
+<li>掌握函数模板的定义、重载与调用规则</li>
+<li>理解模板实现机制与局限性，会写显式具体化</li>
+<li>掌握类模板、成员函数模板、非类型参数与派生关系</li>
+<li>了解类模板的友元与静态成员</li>
+<li>能用类模板实现简易动态数组 <code>MyArray</code></li>
+</ul>
+<hr />
+<h2 id="_2">核心内容</h2>
+<h3 id="_3">一、模板与泛型</h3>
+<p>C++ 提高代码复用主要靠 <strong>继承</strong> 与 <strong>模板</strong>。模板是对<strong>类型参数化</strong>的工具，用来编写与具体类型无关的通用代码（泛型编程）。</p>
+<p>要点：</p>
+<ol>
+<li>模板对类型进行参数化</li>
+<li>两种机制：函数模板、类模板</li>
+<li>函数模板：参数类型不同、函数体相同</li>
+<li>类模板：数据成员/成员函数类型不同、结构相同</li>
+<li>模板声明/定义只能在全局、命名空间或类范围内，不能在函数内定义模板</li>
+</ol>
+<hr />
+<h3 id="_4">二、函数模板</h3>
+<h4 id="21">2.1 通式</h4>
+<pre><code class="language-cpp">template &lt;class T&gt;          // 或 typename T，二者等价
+返回类型 函数名(参数列表) {
+    // 函数体
+}
+</code></pre>
+<p><code>&lt; &gt;</code> 中是模板形参，不能为空。调用时由编译器根据实参推演类型并实例化。</p>
+<h4 id="22">2.2 交换与求最大值</h4>
+<pre><code class="language-cpp">template &lt;class T&gt;
+void mySwap(T&amp; a, T&amp; b) {
+    T tmp = a;
+    a = b;
+    b = tmp;
+}
+
+template &lt;typename T&gt;
+T MaxElement(T a[], int size) {
+    T tmpMax = a[0];
+    for (int i = 1; i &lt; size; ++i) {
+        if (tmpMax &lt; a[i]) tmpMax = a[i];
+    }
+    return tmpMax;
+}
+
+int main() {
+    int n = 1, m = 2;
+    mySwap(n, m);           // 推演为 int
+    mySwap&lt;double&gt;(1.2, 2.3); // 显式指定类型也可
+    int arr[] = {3, 1, 9, 4};
+    cout &lt;&lt; MaxElement(arr, 4) &lt;&lt; endl;
+}
+</code></pre>
+<h4 id="23">2.3 多类型参数</h4>
+<pre><code class="language-cpp">template &lt;class T1, class T2&gt;
+T2 MyFun(T1 arg1, T2 arg2) {
+    cout &lt;&lt; arg1 &lt;&lt; &quot; &quot; &lt;&lt; arg2 &lt;&lt; endl;
+    return arg2;
+}
+</code></pre>
+<h4 id="24">2.4 函数模板重载</h4>
+<p>形参表或类型参数表不同即可重载：</p>
+<pre><code class="language-cpp">template &lt;class T1, class T2&gt;
+void print(T1 a, T2 b) { cout &lt;&lt; a &lt;&lt; &quot; &quot; &lt;&lt; b &lt;&lt; endl; }
+
+template &lt;class T&gt;
+void print(T a, T b) { cout &lt;&lt; a &lt;&lt; &quot; &quot; &lt;&lt; b &lt;&lt; endl; }
+</code></pre>
+<h4 id="25">2.5 与普通函数的匹配优先级</h4>
+<p>同名时，编译器按以下顺序匹配：</p>
+<ol>
+<li>参数完全匹配的<strong>普通函数</strong></li>
+<li>参数完全匹配的<strong>模板函数</strong></li>
+<li>经隐式转换后可匹配的普通函数</li>
+<li>都找不到则报错</li>
+</ol>
+<pre><code class="language-cpp">template &lt;class T&gt;
+T Max(T a, T b) { cout &lt;&lt; &quot;TemplateMax\n&quot;; return a; }
+
+template &lt;class T, class T2&gt;
+T Max(T a, T2 b) { cout &lt;&lt; &quot;TemplateMax2\n&quot;; return a; }
+
+double Max(double a, double b) { cout &lt;&lt; &quot;MyMax\n&quot;; return a; }
+
+int main() {
+    int i = 4, j = 5;
+    Max(1.2, 3.4);  // MyMax（普通函数）
+    Max(i, j);      // TemplateMax
+    Max(1.2, 3);    // TemplateMax2
+}
+</code></pre>
+<p>补充规则：</p>
+<ul>
+<li>普通函数与模板都能匹配时，<strong>优先普通函数</strong></li>
+<li><code>MyPlus&lt;&gt;(a, b)</code> 空模板实参列表可强制走模板</li>
+<li>若模板能产生更好匹配，则选模板</li>
+</ul>
+<h4 id="26">2.6 模板不允许隐式转换</h4>
+<p>函数模板要求类型严格匹配；普通函数可以进行隐式转换。</p>
+<pre><code class="language-cpp">template &lt;class T&gt;
+T myFunction(T a, T b) { return a; }
+
+myFunction(5, 7);      // OK → int
+myFunction(5.8, 8.4);  // OK → double
+// myFunction(5, 8.4); // 错误：无法推演出统一的 T
+</code></pre>
+<hr />
+<h3 id="_5">三、模板实现机制（精简）</h3>
+<p>编译器<strong>不是</strong>生成一个“能处理任意类型”的函数，而是：</p>
+<ul>
+<li>按具体类型生成不同实例</li>
+<li>对模板进行<strong>两次编译</strong>：声明处编译模板本身；调用处对替换类型后的代码再编译</li>
+</ul>
+<hr />
+<h3 id="_6">四、局限性与显式具体化</h3>
+<p>通用模板假设 <code>=</code>、<code>&lt;</code> 等运算符对 <code>T</code> 有意义。若 <code>T</code> 是数组、自定义类等，可能不成立。解决办法：为特定类型提供<strong>显式具体化</strong>（优先于常规模板）。</p>
+<pre><code class="language-cpp">class Person {
+public:
+    Person(string name, int age) : mName(name), mAge(age) {}
+    string mName;
+    int mAge;
+};
+
+template &lt;class T&gt;
+void mySwap(T&amp; a, T&amp; b) {
+    T temp = a; a = b; b = temp;
+}
+
+// 显式具体化：以 template&lt;&gt; 开头
+template &lt;&gt;
+void mySwap&lt;Person&gt;(Person&amp; p1, Person&amp; p2) {
+    swap(p1.mName, p2.mName);
+    swap(p1.mAge, p2.mAge);
+}
+</code></pre>
+<hr />
+<h3 id="_7">五、类模板</h3>
+<h4 id="51-pair">5.1 Pair 例子</h4>
+<pre><code class="language-cpp">template &lt;class T1, class T2&gt;
+class Pair {
+public:
+    Pair(T1 k, T2 v) : m_key(k), m_value(v) {}
+    bool operator&lt;(const Pair&lt;T1, T2&gt;&amp; p) const;
+private:
+    T1 m_key;
+    T2 m_value;
+};
+
+template &lt;class T1, class T2&gt;
+bool Pair&lt;T1, T2&gt;::operator&lt;(const Pair&lt;T1, T2&gt;&amp; p) const {
+    return m_value &lt; p.m_value;
+}
+
+int main() {
+    Pair&lt;string, int&gt; a(&quot;Jay&quot;, 20);
+    Pair&lt;string, int&gt; b(&quot;Tom&quot;, 21);
+    cout &lt;&lt; (a &lt; b) &lt;&lt; endl;  // 1
+}
+</code></pre>
+<p>定义对象：<code>类模板名&lt;真实类型...&gt; 对象名(构造实参...);</code></p>
+<p>注意：<code>Pair&lt;string, int&gt;</code> 与 <code>Pair&lt;string, double&gt;</code> 是<strong>不同的类</strong>，互不兼容。</p>
+<h4 id="52">5.2 成员函数模板</h4>
+<pre><code class="language-cpp">template &lt;class T&gt;
+class A {
+public:
+    template &lt;class T2&gt;
+    void Func(T2 t) { cout &lt;&lt; t; }
+
+    template &lt;class T3&gt;
+    void Func2(T3 t);
+};
+
+template &lt;class T&gt;
+template &lt;class T3&gt;
+void A&lt;T&gt;::Func2(T3 t) { /* ... */ }
+
+int main() {
+    A&lt;int&gt; a;
+    a.Func('K');
+    a.Func(&quot;hello&quot;);  // 按实参分别实例化
+}
+</code></pre>
+<h4 id="53">5.3 非类型参数</h4>
+<pre><code class="language-cpp">template &lt;class T, int size&gt;
+class CArray {
+public:
+    void Print() {
+        for (int i = 0; i &lt; size; ++i) cout &lt;&lt; array[i] &lt;&lt; endl;
+    }
+private:
+    T array[size];
+};
+
+CArray&lt;double, 40&gt; a2;
+CArray&lt;int, 50&gt; a3;  // 与 a2 属于不同的类
+</code></pre>
+<h4 id="54">5.4 类模板与派生（四种情况）</h4>
+<p><strong>① 类模板从类模板派生</strong></p>
+<pre><code class="language-cpp">template &lt;class T1, class T2&gt;
+class Base { T1 v1; T2 v2; };
+
+template &lt;class T1, class T2&gt;
+class Derived : public Base&lt;T2, T1&gt; { T1 v3; T2 v4; };
+
+Derived&lt;int, double&gt; obj;
+</code></pre>
+<p><strong>② 类模板从模板类（已实例化）派生</strong></p>
+<pre><code class="language-cpp">template &lt;class T1, class T2&gt;
+class A { T1 v1; T2 v2; };
+
+template &lt;class T&gt;
+class B : public A&lt;int, double&gt; { T v; };
+
+B&lt;char&gt; obj;
+</code></pre>
+<p><strong>③ 类模板从普通类派生</strong></p>
+<pre><code class="language-cpp">class A { int v1; };
+
+template &lt;class T&gt;
+class B : public A { T v; };
+
+B&lt;char&gt; obj;
+</code></pre>
+<p><strong>④ 普通类从模板类派生</strong></p>
+<pre><code class="language-cpp">template &lt;class T&gt;
+class A { T v1; };
+
+class B : public A&lt;int&gt; { double v; };
+
+B obj;
+</code></pre>
+<hr />
+<h3 id="_8">六、类模板与友元、静态成员</h3>
+<h4 id="61">6.1 友元（要点 + 短例）</h4>
+<ul>
+<li>普通函数、普通类、类的成员函数都可作为类模板的友元；对所有实例生效</li>
+<li>函数模板也可作为类模板的友元（常用于重载 <code>&lt;&lt;</code>）</li>
+</ul>
+<pre><code class="language-cpp">template &lt;class T1, class T2&gt;
+class Pair {
+    T1 key;
+    T2 value;
+public:
+    Pair(T1 k, T2 v) : key(k), value(v) {}
+    template &lt;class T3, class T4&gt;
+    friend ostream&amp; operator&lt;&lt;(ostream&amp; o, const Pair&lt;T3, T4&gt;&amp; p);
+};
+
+template &lt;class T3, class T4&gt;
+ostream&amp; operator&lt;&lt;(ostream&amp; o, const Pair&lt;T3, T4&gt;&amp; p) {
+    return o &lt;&lt; &quot;(&quot; &lt;&lt; p.key &lt;&lt; &quot;---&quot; &lt;&lt; p.value &lt;&lt; &quot;)&quot;;
+}
+</code></pre>
+<p>类模板也可作为另一个类模板的友元：<code>template &lt;class T2&gt; friend class A;</code></p>
+<h4 id="62">6.2 静态成员（要点 + 短例）</h4>
+<p>每个<strong>模板实例类</strong>拥有自己独立的一份静态成员（<code>A&lt;int&gt;</code> 与 <code>A&lt;double&gt;</code> 的 <code>count</code> 互不影响）。</p>
+<pre><code class="language-cpp">template &lt;class T&gt;
+class A {
+    static int count;
+public:
+    A() { ++count; }
+    ~A() { --count; }
+    static void PrintCount() { cout &lt;&lt; count &lt;&lt; endl; }
+};
+
+template &lt;&gt; int A&lt;int&gt;::count = 0;
+template &lt;&gt; int A&lt;double&gt;::count = 0;
+
+int main() {
+    A&lt;int&gt; ia;
+    A&lt;double&gt; da;
+    ia.PrintCount();  // 1
+    da.PrintCount();  // 1
+}
+</code></pre>
+<hr />
+<h3 id="myarray">七、应用：MyArray 类模板</h3>
+<pre><code class="language-cpp">template &lt;class T&gt;
+class MyArray {
+public:
+    explicit MyArray(int capacity)
+        : m_Capacity(capacity), m_Size(0), pAddress(new T[capacity]) {}
+
+    MyArray(const MyArray&amp; arr)
+        : m_Capacity(arr.m_Capacity), m_Size(arr.m_Size),
+          pAddress(new T[arr.m_Capacity]) {
+        for (int i = 0; i &lt; m_Size; ++i)
+            pAddress[i] = arr.pAddress[i];
+    }
+
+    T&amp; operator[](int index) { return pAddress[index]; }
+
+    void Push_back(const T&amp; val) {
+        if (m_Size == m_Capacity) return;
+        pAddress[m_Size++] = val;
+    }
+
+    void Pop_back() {
+        if (m_Size == 0) return;
+        --m_Size;
+    }
+
+    int getSize() const { return m_Size; }
+
+    ~MyArray() {
+        delete[] pAddress;
+        pAddress = nullptr;
+        m_Capacity = m_Size = 0;
+    }
+
+private:
+    T* pAddress;
+    int m_Capacity;
+    int m_Size;
+};
+</code></pre>
+<p>测试（精简）：</p>
+<pre><code class="language-cpp">MyArray&lt;int&gt; a(10);
+for (int i = 0; i &lt; 5; ++i) a.Push_back(i);
+for (int i = 0; i &lt; a.getSize(); ++i) cout &lt;&lt; a[i] &lt;&lt; &quot; &quot;;
+
+MyArray&lt;Person&gt; pa(5);
+pa.Push_back(Person(&quot;Tom&quot;, 20));
+pa.Push_back(Person(&quot;Jerry&quot;, 18));
+</code></pre>
+<p>说明：<code>new T[n]</code> 要求 <code>T</code> 提供默认构造函数。</p>
+<hr />
+<h2 id="_9">课堂小结</h2>
+<ul>
+<li>模板实现类型参数化，支持泛型编程</li>
+<li>函数模板：通式、多参数、重载；匹配优先普通函数；不允许隐式转换</li>
+<li>机制：按类型生成实例，两次编译</li>
+<li>局限性可用显式具体化解决</li>
+<li>类模板：成员函数模板、非类型参数、四种派生、友元与静态成员</li>
+<li><code>MyArray</code> 展示类模板管理动态数组的典型写法</li>
+</ul>
+<hr />
+<h2 id="_10">随堂练习</h2>
+<p><strong>作业：用函数模板对 <code>char</code> / <code>int</code> 数组排序</strong></p>
+<pre><code class="language-cpp">template &lt;class T&gt;
+void PrintArray(T arr[], int len) {
+    for (int i = 0; i &lt; len; ++i) cout &lt;&lt; arr[i] &lt;&lt; &quot; &quot;;
+    cout &lt;&lt; endl;
+}
+
+template &lt;class T&gt;
+void MySort(T arr[], int len) {
+    for (int i = 0; i &lt; len; ++i)
+        for (int j = len - 1; j &gt; i; --j)
+            if (arr[j] &gt; arr[j - 1])
+                swap(arr[j], arr[j - 1]);
+}
+
+void test() {
+    char cs[] = &quot;aojtifysn&quot;;
+    int  is[] = {7, 4, 2, 9, 8, 1};
+    MySort(cs, (int)strlen(cs));
+    MySort(is, 6);
+    PrintArray(cs, (int)strlen(cs));
+    PrintArray(is, 6);
+}
+</code></pre>
+    </article>
+    <footer>
+      <p>由原 day_01～day_09 讲义去重整理 · 建议配合 Markdown 源文件学习</p>
+    </footer>
+  </div>
+</body>
+</html>

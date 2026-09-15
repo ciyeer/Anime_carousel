@@ -70,26 +70,44 @@ int main() {
 | 成员            | 作用 |
 | --------------- | ---- |
 | `get()`         | 读一个字符（含空白） |
+| `get(ch)`       | 读一个字符到变量 |
 | `get(buf, n)`   | 读最多 n-1 个字符到数组 |
-| `getline(buf,n)`| 读一行（遇换行结束） |
+| `getline(buf,n)`| 读一行（遇换行结束，丢弃换行） |
 | `ignore(n)`     | 丢弃缓冲区中最多 n 个字符 |
 | `peek()`        | 查看下一个字符，不取走 |
 | `putback(ch)`   | 把字符放回缓冲区 |
 | `fail()`/`clear()` | 检查 / 复位错误状态 |
 
 ```cpp
-void demo_cin() {
+void demo_get() {
+    char ch = cin.get();
+    cin.get(ch);
+    char a, b, c;
+    cin.get(a).get(b).get(c);   // 链式读取
     char buf[1024] = {};
-    cin.ignore(2);           // 跳过前 2 个字符
     cin.getline(buf, 1024);
     cout << buf << endl;
+}
 
-    char ch = cin.peek();    // 偷窥，不消费
+void demo_ignore_putback() {
+    cin.ignore(2);
+    char buf[1024] = {};
+    cin.get(buf, 1024);
+    cout << buf << endl;
+    char ch = cin.get();
+    cin.putback(ch);
+    cin.get(buf, 1024);
+    cout << buf << endl;
+}
+
+void demo_peek() {
+    cout << "请输入数字或字符串:\n";
+    char ch = cin.peek();
     if (ch >= '0' && ch <= '9') {
-        int number;
-        cin >> number;
+        int number; cin >> number;
         cout << "数字:" << number << endl;
     } else {
+        char buf[64] = {};
         cin.getline(buf, 64);
         cout << "字符串:" << buf << endl;
     }
@@ -100,15 +118,21 @@ void demo_cin() {
 
 输出侧常用：`put(ch)` 写字符、`write(buf, n)` 写指定字节、`flush()` 刷新。
 
+```cpp
+cout.put('a').put('b');
+cout.write("hello", 5);
+cout.flush();
+```
+
 格式化有两种途径：
 
-1. **控制符**（需 `<iomanip>`）：`setw`、`setprecision`、`fixed`、`hex`/`oct`/`dec`、`left`/`right` 等  
+1. **控制符**（需 `<iomanip>`）：`setw`、`setprecision`、`fixed`、`hex`/`oct`/`dec`、`left`/`right`、`setfill` 等  
 2. **成员函数**：`width()`、`precision()`、`setf()` / `unsetf()` 等
 
 ```cpp
 #include <iomanip>
-cout << hex << 255 << endl;                    // ff
-cout << dec << fixed << setprecision(2) << 3.14159 << endl;  // 3.14
+cout << hex << showbase << 255 << endl;        // 0xff
+cout << dec << fixed << setprecision(2) << 3.14159 << endl;
 cout << setw(8) << setfill('0') << 42 << endl; // 00000042
 ```
 
@@ -159,22 +183,31 @@ str.clear();                      // 清空
 #### 其他常用
 
 - 长度：`size()` / `length()`；是否空：`empty()`
-- 拼接：`+`、`+=`、`append()`
-- 与 C 字符串互转：`c_str()`
+- 拼接：`+`、`+=`、`append()`、`push_back()`
+- 与 C 字符串互转：`c_str()`；单字符：`[]` / `at()`
 - 大小写：配合 `<cctype>` 的 `toupper` / `tolower` 逐字符处理
+
+```cpp
+string str = "Hello, world!";
+for (char& c : str) c = static_cast<char>(toupper(c));
+for (char& c : str) c = static_cast<char>(tolower(c));
+```
 
 ### 四、动态内存：new / delete
 
 #### 4.1 基本用法
 
 ```cpp
-int* p = new int;       // 单个对象
+int* p = new int;
 *p = 42;
 delete p;
+p = nullptr;              // 避免悬空指针
 
-int* arr = new int[10]; // 数组
-delete[] arr;           // 数组必须用 delete[]
+int* arr = new int[10]{}; // 数组可值初始化
+delete[] arr;             // 数组必须用 delete[]
 ```
+
+运行时按需向堆申请，比固定数组更灵活；忘记释放会导致泄漏。
 
 #### 4.2 new/delete 与 malloc/free
 
@@ -184,13 +217,16 @@ delete[] arr;           // 数组必须用 delete[]
 | 构造/析构  | 会调用                    | 不会                 |
 | 类型       | 类型安全，自动算大小      | 需手动 `sizeof`      |
 | 失败       | 抛 `std::bad_alloc`（默） | 返回 `nullptr`       |
+| 对齐等     | 按对象类型处理            | 需自行保证           |
 | 推荐场景   | C++ 对象优先用 new/delete | 与 C 库交互时可能用到 |
+
+不要混用：`new` 配 `free`、`malloc` 配 `delete` 都是未定义行为。
 
 #### 4.3 预防内存泄漏
 
 - `new` 与 `delete`（`new[]` 与 `delete[]`）成对出现
 - 所有返回路径都要释放（含异常路径）
-- 遵循 RAII：资源获取即初始化
+- 遵循 RAII：资源获取即初始化，对象析构时自动释放
 - **智能指针**（`unique_ptr` / `shared_ptr`）可自动释放——详情见第 06 课
 
 ### 五、文件流
@@ -222,11 +258,19 @@ outfile.close();  // 解除关联，之后可再 open 其他文件
 | `ios::trunc`   | 截断已有内容   |
 | `ios::binary`  | 二进制模式     |
 
-可用 `|` 组合，例如：`ios::in | ios::binary`。互斥模式不要一起用。打开失败时流对象为假，可用 `if (!fsm)` 判断。
+可用 `|` 组合，例如：`ios::in | ios::binary`、`ios::out | ios::app`。互斥模式不要一起用。打开失败时流对象为假，可用 `if (!fsm)` 判断。
+
+每个打开的文件有读写位置指针；读到末尾时 `eof()` 为真。
+
+```cpp
+ofstream app("log.txt", ios::app);   // 追加
+app << "新的一行\n";
+app.close();
+```
 
 #### 5.3 ASCII 文本读写
 
-文本文件按字符存储。可用 `<<` / `>>`，或 `get` / `getline` / `put`。
+文本文件按字符存储。可用 `<<` / `>>`，或 `get` / `getline` / `put`。`ifstream`/`ofstream` 继承标准流插入提取运算，用法类似 `cin`/`cout`。优先 `while (getline(ism, line))`，避免错误的 `while (!eof())` 多读一行。
 
 ```cpp
 #include <iostream>

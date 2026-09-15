@@ -96,21 +96,42 @@ protected: int mB;
 private:   int mC;
 };
 
-class B : public A {     // public 继承
+// public 继承：对外仍暴露基类 public
+class B : public A {
 public:
+    void PrintB() {
+        cout << mA << endl;   // OK
+        cout << mB << endl;   // OK
+        // cout << mC;        // 基类 private 不可访问
+    }
+};
+class SubB : public B {
+    void Print() { cout << mA << mB; }  // 仍可访问
+};
+
+// private 继承：基类 public/protected 在本类中变为 private
+class C : private A {
+public:
+    void PrintC() { cout << mA << mB; }  // 本类内部 OK
+};
+class SubC : public C {
     void Print() {
-        cout << mA << mB; // OK
-        // cout << mC;    // 不可访问
+        // mA、mB 均不可访问（已成为 C 的 private）
     }
 };
 
-class C : private A {    // private 继承
+// protected 继承：基类 public 降为 protected，类外不可见
+class D : protected A {
 public:
-    void Print() {
-        cout << mA << mB; // 派生类内部仍可访问
-    }
+    void PrintD() { cout << mA << mB; }
 };
-// 类外：b.mA 可访问；c.mA 不可访问
+
+void test() {
+    B b;  cout << b.mA;   // OK
+    // cout << b.mB;      // protected，类外不可
+    C c;  // cout << c.mA; // private 继承，类外不可
+    D d;  // cout << d.mA; // protected 继承，类外不可
+}
 ```
 
 ### 三、final：禁用继承 / 重写
@@ -166,7 +187,9 @@ private:
 };
 ```
 
-对象模型可理解为：派生类 = 基类成员 + 新增成员（按继承层次叠加）。
+对象模型可理解为：派生类 = 基类成员 + 新增成员（按继承层次叠加）。可用 `sizeof` 验证成员累加（注意对齐）。
+
+创建多层对象时：构造 `A → B → C`；析构相反 `C → B → A`。基类无默认构造时，派生类须在初始化列表显式调用带参构造。
 
 #### 4.2 同名成员与隐藏
 
@@ -178,9 +201,20 @@ private:
 class Base {
 public:
     Base() : mParam(0) {}
-    void func1() {}
-    void func1(int) {}
+    void func1() { cout << "Base::func1()\n"; }
+    void func1(int) { cout << "Base::func1(int)\n"; }
+    void myfunc() { cout << "Base::myfunc\n"; }
     int mParam;
+};
+
+class Derived1 : public Base {
+public:
+    void myfunc() { cout << "Derived1::myfunc\n"; }  // 仅隐藏 myfunc
+};
+
+class Derived2 : public Base {
+public:
+    void func1(int, int) {}  // 隐藏 Base 的两个 func1
 };
 
 class Derived : public Base {
@@ -190,9 +224,10 @@ public:
         cout << Base::mParam << endl;  // 基类
         cout << mParam << endl;        // 派生类
     }
-    void func1(int, int) {}  // 隐藏 Base 的两个 func1
+    int& getBaseParam() { return Base::mParam; }
     int mParam;
 };
+// Derived1 仍可调用 func1()/func1(int)；Derived2 只能调 func1(int,int)
 ```
 
 #### 4.3 不可自动继承的函数
@@ -200,6 +235,25 @@ public:
 构造函数、析构函数、`operator=` **不能被继承**，须为每个派生类单独提供（未写时编译器可能自动生成）。
 
 静态成员可被继承；重定义静态函数同样会隐藏基类同名重载。静态成员函数**不能**是虚函数。
+
+```cpp
+class Base {
+public:
+    static int getNum() { return sNum; }
+    static int getNum(int p) { return sNum + p; }
+    static int sNum;
+};
+int Base::sNum = 10;
+
+class Derived : public Base {
+public:
+    static int sNum;  // 隐藏基类同名静态数据
+    static void getNum(int a, int b) {
+        cout << sNum + a + b << endl;  // 隐藏基类全部 getNum
+    }
+};
+int Derived::sNum = 20;
+```
 
 ### 五、多继承、菱形继承与虚继承
 
@@ -243,7 +297,31 @@ class Derived : public Base1, public Base2 {};
 // derived.func(); derived.mParam;  // 无二义，只一份数据
 ```
 
-**原理简述：** 虚继承时，对象中有 `vbptr`（虚基类指针），指向偏移表，用以定位共享的虚基类子对象。虚基类由**最终派生类**负责初始化，中间类初始化列表中的虚基类构造不会真正执行。
+**原理简述：**
+
+- 普通菱形继承：`Derived` 中有两份 `BigBase`，访问需 `Base1::mParam` 限定
+- 虚继承后：对象内有 `vbptr`（虚基类指针）指向偏移表，定位**唯一**共享虚基类子对象
+- 虚基类由**最终派生类**负责初始化；中间类初始化列表里对虚基类的构造不真正执行
+
+```cpp
+class BigBase {
+public:
+    BigBase(int x) { mParam = x; }
+    int mParam;
+};
+class Base1 : virtual public BigBase {
+public:
+    Base1() : BigBase(10) {}   // 创建 Derived 时不真正调用
+};
+class Base2 : virtual public BigBase {
+public:
+    Base2() : BigBase(10) {}
+};
+class Derived : public Base1, public Base2 {
+public:
+    Derived() : BigBase(10) {} // 最终派生类初始化虚基类
+};
+```
 
 > 虚继承只解决“有公共祖先”的菱形问题。工程中尽量用单继承替代多继承。
 
@@ -293,8 +371,18 @@ int main() {
 基类指针删除派生类对象时，若析构非虚，只调基类析构 → 派生类资源泄漏。
 
 ```cpp
-// 错误：~Base 非虚 → 只打印 ~Base
-// 正确：virtual ~Base() → 先 ~Derived1 再 ~Base
+class Base {
+public:
+    virtual void show() { cout << "base\n"; }
+    virtual ~Base() { cout << "~Base\n"; }  // 必须为虚
+};
+class Derived1 : public Base {
+public:
+    void show() override { cout << "Derived1\n"; }
+    ~Derived1() { cout << "~Derived1\n"; }
+};
+// Base* b = new Derived1; delete b;
+// 非虚析构只打印 ~Base；虚析构打印 ~Derived1 再 ~Base
 ```
 
 基类若可能被多态删除，析构应声明为 `virtual`（哪怕函数体为空）。
@@ -305,8 +393,26 @@ int main() {
 - 每个对象有一个**虚表指针（vfptr）**，指向所属类的 vtable
 - 派生类先拷贝基类虚表，再对重写项覆盖为派生类函数地址
 - 虚函数本身在代码段；对象里存的是虚表指针，不是整张表
+- 调用时：取 `vfptr` → 查表 → 跳转（晚绑定）
 
-有虚函数时，对象体积会因 `vfptr` 增大（如 64 位下多 8 字节）。
+```cpp
+class A {
+public:
+    virtual void Print1() {}
+    virtual void Print2() {}
+    void Print3() {}   // 非虚，不进虚表
+    int _a;
+};
+// 64 位下 sizeof(A) 常为 16：8(vfptr)+4(int)+对齐
+
+class B : public A {
+public:
+    void Print1() override {}  // 虚表槽位改为 B::Print1
+    int _b;
+};
+```
+
+多个虚函数只增加表项，不按个数倍增对象大小。
 
 ### 八、抽象类与纯虚函数
 
